@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 
 async function count(table: string) {
   const supabase = await createClient();
@@ -10,7 +11,48 @@ async function count(table: string) {
   return count ?? 0;
 }
 
-export default async function DashboardPage() {
+export default async function HomePage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return (
+      <div style={{ maxWidth: 520, margin: "60px auto", textAlign: "center" }}>
+        <h1>Police Station Reporting System</h1>
+        <p className="muted">
+          Sign in to file a report or to access the case management
+          dashboard.
+        </p>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 24 }}>
+          <Link href="/login"><button>Sign in</button></Link>
+          <Link href="/signup"><button className="secondary">Create account</button></Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.role === "citizen") {
+    return (
+      <>
+        <h1>Welcome</h1>
+        <p className="muted">
+          As a citizen you can file a report and check the status of reports
+          you have submitted.
+        </p>
+        <div className="grid">
+          <Link href="/report/new" className="card" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="stat-label">File a new report</div>
+            <div className="stat">📝</div>
+          </Link>
+          <Link href="/report/mine" className="card" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="stat-label">My reports</div>
+            <div className="stat">📋</div>
+          </Link>
+        </div>
+      </>
+    );
+  }
+
+  // Officer / admin dashboard.
   const [stations, officers, persons, complaints, cases, arrests] =
     await Promise.all([
       count("police_station"),
@@ -30,21 +72,9 @@ export default async function DashboardPage() {
     { label: "Arrests",    value: arrests,    href: "/cases" },
   ];
 
-  const dbConfigured =
-    !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
   return (
     <>
       <h1>Dashboard</h1>
-
-      {!dbConfigured && (
-        <div className="error">
-          Supabase env vars missing. Copy <code>.env.local.example</code> to
-          <code> .env.local</code> and fill in your project URL + anon key.
-        </div>
-      )}
-
       <div className="grid">
         {stats.map((s) => (
           <Link
@@ -62,7 +92,7 @@ export default async function DashboardPage() {
       <h2>Quick actions</h2>
       <div className="card">
         <div className="row">
-          <span>File a new complaint</span>
+          <span>File a complaint on behalf of a citizen</span>
           <Link href="/complaints/new"><button>New complaint</button></Link>
         </div>
       </div>
@@ -72,6 +102,14 @@ export default async function DashboardPage() {
           <Link href="/cases/new"><button>New case</button></Link>
         </div>
       </div>
+      {user.role === "admin" && (
+        <div className="card">
+          <div className="row">
+            <span>Manage ranks</span>
+            <Link href="/admin/ranks"><button>Open</button></Link>
+          </div>
+        </div>
+      )}
     </>
   );
 }

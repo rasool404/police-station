@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime, statusBadgeClass, severityBadgeClass } from "@/lib/format";
+import { requireUser } from "@/lib/auth";
 
 export default async function CaseDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireUser();
   const { id } = await params;
   const supabase = await createClient();
 
@@ -16,7 +18,7 @@ export default async function CaseDetailPage({
       `case_id, opened_date, closed_date, status,
        complaint:complaint(complaint_id, filed_at, description, status),
        crime_type:crime_type(crime_type_id, name, severity, description),
-       lead_officer:officer(officer_id, name, badge_number),
+       lead_officer:officer!case_lead_officer_id_fkey(officer_id, name, badge_number),
        assignments:case_assignment(
          assigned_date, role,
          officer:officer(officer_id, name, badge_number)

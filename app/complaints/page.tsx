@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime, statusBadgeClass } from "@/lib/format";
+import { requireRole } from "@/lib/auth";
 
 export default async function ComplaintsPage() {
+  await requireRole(["officer", "admin"]);
   const supabase = await createClient();
   const { data: complaints, error } = await supabase
     .from("complaint")

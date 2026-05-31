@@ -79,6 +79,9 @@ tr:hover td { background: var(--panel-2); }
 .badge-high { color: #ffa07a; }
 .badge-medium { color: #ffd166; }
 .badge-low { color: var(--accent-2); }
+.badge-citizen { color: var(--accent-2); border-color: #2a5a4b; }
+.badge-officer { color: var(--accent); border-color: #2a3a5a; }
+.badge-admin { color: #ffd166; border-color: #5a4a2a; }
 
 form.stack { display: flex; flex-direction: column; gap: 12px; max-width: 480px; }
 label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }

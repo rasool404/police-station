@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
+import { requireRole } from "@/lib/auth";
 
 export default async function PersonsPage() {
+  await requireRole(["officer", "admin"]);
   const supabase = await createClient();
   const { data: persons, error } = await supabase
     .from("person")

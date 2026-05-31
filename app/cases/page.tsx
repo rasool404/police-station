@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, statusBadgeClass, severityBadgeClass } from "@/lib/format";
+import { requireRole } from "@/lib/auth";
 
 export default async function CasesPage() {
+  await requireRole(["officer", "admin"]);
   const supabase = await createClient();
   const { data: cases, error } = await supabase
     .from("case")
     .select(
       `case_id, opened_date, closed_date, status,
        crime_type:crime_type(name, severity),
-       lead_officer:officer(name, badge_number)`,
+       lead_officer:officer!case_lead_officer_id_fkey(name, badge_number)`,
     )
     .order("opened_date", { ascending: false });
 

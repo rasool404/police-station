@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createComplaint } from "@/app/actions/complaint";
+import { requireRole } from "@/lib/auth";
 
 export default async function NewComplaintPage() {
+  await requireRole(["officer", "admin"]);
   const supabase = await createClient();
   const [{ data: persons }, { data: officers }] = await Promise.all([
     supabase.from("person").select("person_id, name").order("name"),

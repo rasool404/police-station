@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createCase } from "@/app/actions/case";
+import { requireRole } from "@/lib/auth";
 
 export default async function NewCasePage() {
+  await requireRole(["officer", "admin"]);
   const supabase = await createClient();
 
   const [{ data: complaints }, { data: crimeTypes }, { data: officers }] =
