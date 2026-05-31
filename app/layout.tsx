@@ -114,8 +114,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         </div>
 
         <footer className="site-footer">
-          <span>Casebook</span>
-          <span>{todayStamp()}</span>
+          <div className="site-footer-inner">
+            <span>Casebook</span>
+            <span>{todayStamp()}</span>
+          </div>
         </footer>
       </body>
     </html>

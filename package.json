@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:push": "supabase db push",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "seed:evidence": "node --env-file=.env.local scripts/seed-evidence.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

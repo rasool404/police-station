@@ -108,7 +108,7 @@ async function CommandDashboard({ isChef }: { isChef: boolean }) {
   const { data: recentComplaints } = await supabase
     .from("complaint")
     .select(
-      `complaint_id, filed_at, status, description,
+      `complaint_id, filed_at, status, title, description,
        complainant:person!complaint_complainant_id_fkey(name)`,
     )
     .order("filed_at", { ascending: false })
@@ -174,8 +174,11 @@ async function CommandDashboard({ isChef }: { isChef: boolean }) {
                     <span className="mono" style={{ fontSize: 12 }}>{c.complaint_id}</span>
                     <span className={`stamp stamp-${c.status}`}>{c.status}</span>
                   </div>
-                  <div style={{ marginTop: 4, fontSize: 14 }}>
-                    {c.description?.slice(0, 70)}{c.description?.length > 70 ? "…" : ""}
+                  <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500 }}>
+                    {c.title}
+                  </div>
+                  <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                    {c.description?.slice(0, 80)}{c.description?.length > 80 ? "…" : ""}
                   </div>
                 </div>
               ))}

@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
+import { assignOfficer, unassignOfficer } from "@/app/actions/assignment";
+import { Avatar } from "@/components/Avatar";
 
 export default async function CaseDetailPage({
   params,
@@ -16,7 +18,7 @@ export default async function CaseDetailPage({
     .from("case")
     .select(
       `case_id, opened_date, closed_date, status,
-       complaint:complaint(complaint_id, filed_at, description, status,
+       complaint:complaint(complaint_id, filed_at, title, description, status, evidence_url,
          complainant:person!complaint_complainant_id_fkey(person_id, name)
        ),
        crime_type:crime_type(crime_type_id, name, severity, description),
@@ -54,10 +56,21 @@ export default async function CaseDetailPage({
   const totalCharges = (k.arrests ?? []).reduce((acc: number, a: any) => acc + (a.charges?.length ?? 0), 0);
   const totalEvidence = k.evidence?.length ?? 0;
 
+  // Officers not yet assigned (for the assign dropdown).
+  const assignedIds: string[] = (k.assignments ?? []).map((a: any) => a.officer.officer_id);
+  const { data: availableOfficers } = await supabase
+    .from("officer")
+    .select("officer_id, name, badge_number")
+    .order("name");
+  const unassigned = (availableOfficers ?? []).filter((o) => !assignedIds.includes(o.officer_id));
+
   return (
     <>
       {/* HERO HEADER */}
-      <div style={{ position: "relative" }}>
+      <div style={{ position: "relative", paddingLeft: 18 }}>
+        {k.crime_type?.severity && (
+          <span className={`severity-bar severity-bar-${k.crime_type.severity}`} aria-hidden />
+        )}
         <div style={{ position: "absolute", top: 0, right: 0 }}>
           {totalArrests > 0 && <span className="wax-stamp">Arrest filed</span>}
         </div>
@@ -108,10 +121,18 @@ export default async function CaseDetailPage({
                 <div className="mono muted" style={{ fontSize: 11, marginTop: 6 }}>{new Date(k.complaint.filed_at).toLocaleString()}</div>
               </div>
             </div>
+            {k.complaint.title && (
+              <h3 style={{ margin: "16px 0 4px" }}>{k.complaint.title}</h3>
+            )}
             <hr className="rule" />
             <p style={{ marginBottom: 0, fontFamily: "var(--font-display)", fontSize: 17, lineHeight: 1.5, fontStyle: "italic", color: "var(--ink-2)" }}>
               “{k.complaint.description}”
             </p>
+            {k.complaint.evidence_url && (
+              <a href={k.complaint.evidence_url} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: 16 }}>
+                <img src={k.complaint.evidence_url} alt="Evidence" style={{ maxWidth: 360, maxHeight: 240, borderRadius: 2, border: "1px solid var(--rule)" }} />
+              </a>
+            )}
           </div>
         </>
       )}
@@ -123,20 +144,56 @@ export default async function CaseDetailPage({
       <div className="dossier" style={{ padding: 0 }}>
         <table className="ledger">
           <thead>
-            <tr><th>Badge</th><th>Officer</th><th>Role</th><th>Assigned</th></tr>
+            <tr><th>Badge</th><th>Officer</th><th>Role</th><th>Assigned</th><th></th></tr>
           </thead>
           <tbody>
-            {k.assignments?.map((a: any) => (
-              <tr key={a.officer.officer_id + a.assigned_date}>
-                <td className="id">{a.officer.badge_number}</td>
-                <td>{a.officer.name}</td>
-                <td><span className="mono" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.18em" }}>{a.role ?? "—"}</span></td>
-                <td className="mono muted">{new Date(a.assigned_date).toLocaleDateString()}</td>
-              </tr>
-            )) ?? null}
-            {!k.assignments?.length && <tr><td colSpan={4} className="empty">No assignments</td></tr>}
+            {k.assignments?.map((a: any) => {
+              const isLead = a.officer.officer_id === k.lead_officer?.officer_id;
+              return (
+                <tr key={a.officer.officer_id + a.assigned_date}>
+                  <td className="id"><Link href={`/officers/${a.officer.officer_id}`}>{a.officer.badge_number}</Link></td>
+                  <td>
+                    <Link href={`/officers/${a.officer.officer_id}`} style={{ color: "inherit", display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+                      <Avatar name={a.officer.name} id={a.officer.officer_id} size={28} />
+                      {a.officer.name}
+                    </Link>
+                  </td>
+                  <td><span className="mono" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.18em" }}>{a.role ?? "—"}</span></td>
+                  <td className="mono muted">{new Date(a.assigned_date).toLocaleDateString()}</td>
+                  <td style={{ textAlign: "right" }}>
+                    {!isLead && (
+                      <form action={unassignOfficer} style={{ display: "inline" }}>
+                        <input type="hidden" name="case_id"    value={k.case_id} />
+                        <input type="hidden" name="officer_id" value={a.officer.officer_id} />
+                        <button type="submit" className="secondary" style={{ padding: "4px 10px", fontSize: 10 }}>Remove</button>
+                      </form>
+                    )}
+                  </td>
+                </tr>
+              );
+            }) ?? null}
+            {!k.assignments?.length && <tr><td colSpan={5} className="empty">No assignments</td></tr>}
           </tbody>
         </table>
+        <div style={{ padding: 16, borderTop: "1px solid var(--rule)", background: "var(--paper-2)" }}>
+          <form action={assignOfficer} style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+            <input type="hidden" name="case_id" value={k.case_id} />
+            <label style={{ flex: "1 1 220px", minWidth: 220 }}>
+              Add officer
+              <select name="officer_id" required defaultValue="">
+                <option value="" disabled>Select…</option>
+                {unassigned.map((o) => (
+                  <option key={o.officer_id} value={o.officer_id}>{o.name} — {o.badge_number}</option>
+                ))}
+              </select>
+            </label>
+            <label style={{ flex: "1 1 160px", minWidth: 160 }}>
+              Role
+              <input name="role" placeholder="e.g. support, lab, dog handler" />
+            </label>
+            <button type="submit" disabled={!unassigned.length}>Assign →</button>
+          </form>
+        </div>
       </div>
 
       {/* INVOLVEMENTS */}
@@ -151,7 +208,12 @@ export default async function CaseDetailPage({
           <tbody>
             {k.involvements?.map((i: any) => (
               <tr key={i.person.person_id + i.role}>
-                <td>{i.person.name}</td>
+                <td>
+                  <Link href={`/persons/${i.person.person_id}`} style={{ color: "inherit", display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+                    <Avatar name={i.person.name} id={i.person.person_id} size={28} />
+                    {i.person.name}
+                  </Link>
+                </td>
                 <td className="id">{i.person.national_id ?? "—"}</td>
                 <td><span className={`stamp stamp-${i.role === "suspect" ? "convicted" : i.role === "victim" ? "open" : "filed"}`}>{i.role}</span></td>
                 <td className="muted">{i.notes ?? "—"}</td>
