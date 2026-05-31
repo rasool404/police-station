@@ -10,7 +10,7 @@ export async function createRank(
   _prev: RankFormState,
   formData: FormData,
 ): Promise<RankFormState> {
-  await requireRole("admin");
+  await requireRole("chef");
 
   const rankId = String(formData.get("rank_id") ?? "").trim();
   const title  = String(formData.get("title")   ?? "").trim();
@@ -29,14 +29,14 @@ export async function createRank(
   });
   if (error) return { error: error.message };
 
-  revalidatePath("/admin/ranks");
+  revalidatePath("/chef/ranks");
   return null;
 }
 
 export async function deleteRank(rankId: string) {
-  await requireRole("admin");
+  await requireRole("chef");
   const supabase = await createClient();
   const { error } = await supabase.from("rank").delete().eq("rank_id", rankId);
   if (error) throw new Error(error.message);
-  revalidatePath("/admin/ranks");
+  revalidatePath("/chef/ranks");
 }

@@ -16,7 +16,9 @@ export async function fileReport(
   formData: FormData,
 ): Promise<ReportState> {
   const user = await requireRole("citizen");
-  if (!user.personId) return { error: "Account is not linked to a person record." };
+  if (!user.personId) {
+    return { error: "Account is not linked to a person record." };
+  }
 
   const description = String(formData.get("description") ?? "").trim();
   if (description.length < 10) {
@@ -25,28 +27,23 @@ export async function fileReport(
 
   const supabase = await createClient();
 
-  // Pick any officer to receive the report — in a real system this would
-  // route by district. For this project we just grab the first one.
-  // Citizens can't read the officer table directly (RLS), so we use an
-  // RPC-style approach: call from server which still operates under the
-  // user's JWT. Instead we let the database default the assignment by
-  // leaving officer_id nullable? No — schema requires it. So we expose
-  // a SECURITY DEFINER function… for simplicity here, the route hands
-  // off to a server-side query that uses a known officer ID from env or
-  // a deterministic pick. We'll allow RLS by also permitting officers
-  // to be selected by citizens for now via a dedicated view; simplest
-  // fix: a SECURITY DEFINER RPC.
+  // Pick the first officer by badge number to receive the report.
+  // A real system would route by district / case load.
   const { data: receivingOfficer, error: pickErr } = await supabase
-    .rpc("pick_receiving_officer");
+    .from("officer")
+    .select("officer_id")
+    .order("badge_number")
+    .limit(1)
+    .maybeSingle();
 
   if (pickErr || !receivingOfficer) {
-    return { error: "No officer available to receive the report. Try again later." };
+    return { error: "No officer available to receive the report." };
   }
 
   const { error } = await supabase.from("complaint").insert({
     complaint_id:   newId("CMP"),
     complainant_id: user.personId,
-    officer_id:     receivingOfficer as string,
+    officer_id:     receivingOfficer.officer_id,
     description,
     status:         "open",
   });

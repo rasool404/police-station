@@ -1,9 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/format";
 import { requireRole } from "@/lib/auth";
 
 export default async function OfficersPage() {
-  await requireRole(["officer", "admin"]);
+  await requireRole(["officer", "chef"]);
   const supabase = await createClient();
   const { data: officers, error } = await supabase
     .from("officer")
@@ -15,13 +14,16 @@ export default async function OfficersPage() {
     )
     .order("officer_id");
 
-  if (error) return <div className="error">{error.message}</div>;
+  if (error) return <div className="notice">{error.message}</div>;
 
   return (
     <>
-      <h1>Officers</h1>
-      <div className="card" style={{ padding: 0 }}>
-        <table>
+      <div className="page-head">
+        <h1>Officers</h1>
+      </div>
+
+      <div className="dossier" style={{ padding: 0 }}>
+        <table className="ledger">
           <thead>
             <tr>
               <th>Badge</th>
@@ -36,17 +38,20 @@ export default async function OfficersPage() {
           <tbody>
             {officers?.map((o: any) => (
               <tr key={o.officer_id}>
-                <td className="muted">{o.badge_number}</td>
+                <td className="id">{o.badge_number}</td>
                 <td>{o.name}</td>
-                <td>{o.rank?.title ?? "—"}</td>
-                <td>{o.station?.name ?? "—"}</td>
-                <td>{o.department?.name ?? "—"}</td>
-                <td>{o.phone ?? "—"}</td>
-                <td>{formatDate(o.join_date)}</td>
+                <td>
+                  {o.rank?.title ?? "—"}{" "}
+                  <span className="muted mono" style={{ fontSize: 11 }}>L{o.rank?.level ?? "?"}</span>
+                </td>
+                <td className="muted">{o.station?.name ?? "—"}</td>
+                <td className="muted">{o.department?.name ?? "—"}</td>
+                <td className="mono muted">{o.phone ?? "—"}</td>
+                <td className="mono muted">{o.join_date ? new Date(o.join_date).toLocaleDateString() : "—"}</td>
               </tr>
             ))}
             {!officers?.length && (
-              <tr><td colSpan={7} className="empty">No officers</td></tr>
+              <tr><td colSpan={7} className="empty">No officers on roster.</td></tr>
             )}
           </tbody>
         </table>

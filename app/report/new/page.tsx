@@ -11,28 +11,31 @@ export default function NewReportPage() {
 
   return (
     <>
-      <h1>File a report</h1>
-      <p className="muted">
-        Describe what happened. Your report will be assigned to an officer
-        for review. You can check the status under <strong>My reports</strong>.
-      </p>
-      {state?.error && <div className="error">{state.error}</div>}
-      <form action={action} className="stack card">
-        <label>
-          Description
-          <textarea
-            name="description"
-            placeholder="What happened? Where? When? Anything else you remember…"
-            minLength={10}
-            required
-          />
-        </label>
-        <div className="row">
-          <button type="submit" disabled={pending}>
-            {pending ? "Submitting…" : "Submit report"}
-          </button>
-        </div>
-      </form>
+      <div className="page-head">
+        <h1>New report</h1>
+      </div>
+
+      {state?.error && <div className="notice">{state.error}</div>}
+
+      <div className="dossier" style={{ padding: 32, maxWidth: 700 }}>
+        <form action={action} className="stack">
+          <label>
+            What happened?
+            <textarea
+              name="description"
+              placeholder="Be specific. When, where, what, and who else was present…"
+              minLength={10}
+              required
+              style={{ minHeight: 180, fontSize: 15, lineHeight: 1.6 }}
+            />
+          </label>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button type="submit" disabled={pending}>
+              {pending ? "Submitting…" : "Submit →"}
+            </button>
+          </div>
+        </form>
+      </div>
     </>
   );
 }

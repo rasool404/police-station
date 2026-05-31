@@ -11,8 +11,8 @@ export function NewRankForm() {
 
   return (
     <>
-      {state?.error && <div className="error">{state.error}</div>}
-      <form action={action} className="stack card">
+      {state?.error && <div className="notice">{state.error}</div>}
+      <form action={action} className="stack" style={{ marginTop: 12 }}>
         <label>
           Rank ID
           <input name="rank_id" placeholder="e.g. R6" required />
@@ -23,17 +23,11 @@ export function NewRankForm() {
         </label>
         <label>
           Level
-          <input
-            name="level"
-            type="number"
-            min={1}
-            placeholder="6"
-            required
-          />
+          <input name="level" type="number" min={1} placeholder="6" required />
         </label>
-        <div className="row">
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button type="submit" disabled={pending}>
-            {pending ? "Adding…" : "Add rank"}
+            {pending ? "Adding…" : "Add rank →"}
           </button>
         </div>
       </form>

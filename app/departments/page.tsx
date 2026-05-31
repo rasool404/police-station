@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 
 export default async function DepartmentsPage() {
-  await requireRole(["officer", "admin"]);
+  await requireRole(["officer", "chef"]);
   const supabase = await createClient();
   const { data: departments, error } = await supabase
     .from("department")
@@ -13,20 +13,19 @@ export default async function DepartmentsPage() {
     )
     .order("department_id");
 
-  if (error) return <div className="error">{error.message}</div>;
+  if (error) return <div className="notice">{error.message}</div>;
 
   return (
     <>
-      <h1>Departments</h1>
-      <p className="muted">
-        Operational units inside each police station (homicide, narcotics,
-        cybercrime, …). Officers belong to one department.
-      </p>
-      <div className="card" style={{ padding: 0 }}>
-        <table>
+      <div className="page-head">
+        <h1>Departments</h1>
+      </div>
+
+      <div className="dossier" style={{ padding: 0 }}>
+        <table className="ledger">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Dept No.</th>
               <th>Name</th>
               <th>Station</th>
               <th>Description</th>
@@ -36,18 +35,18 @@ export default async function DepartmentsPage() {
           <tbody>
             {departments?.map((d: any) => (
               <tr key={d.department_id}>
-                <td className="muted">{d.department_id}</td>
+                <td className="id">{d.department_id}</td>
                 <td>{d.name}</td>
                 <td>
                   {d.station?.name ?? "—"}{" "}
-                  <span className="muted">({d.station?.station_id})</span>
+                  <span className="muted mono" style={{ fontSize: 11 }}>{d.station?.station_id}</span>
                 </td>
-                <td>{d.description ?? "—"}</td>
-                <td>{d.officer?.length ?? 0}</td>
+                <td className="muted">{d.description ?? "—"}</td>
+                <td className="mono">{d.officer?.length ?? 0}</td>
               </tr>
             ))}
             {!departments?.length && (
-              <tr><td colSpan={5} className="empty">No departments</td></tr>
+              <tr><td colSpan={5} className="empty">No departments registered.</td></tr>
             )}
           </tbody>
         </table>

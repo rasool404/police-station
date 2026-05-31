@@ -1,37 +1,39 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export type AppRole = "citizen" | "officer" | "admin";
+export type AppRole = "citizen" | "officer" | "chef";
+
+export const SESSION_COOKIE = "session_user_id";
 
 export type CurrentUser = {
   userId: string;
-  email: string | null;
+  username: string;
   role: AppRole;
   personId: string | null;
   officerId: string | null;
 };
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const cookieStore = await cookies();
+  const userId = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!userId) return null;
 
-  const { data: profile, error } = await supabase
-    .from("app_user")
-    .select("role, person_id, officer_id")
-    .eq("user_id", user.id)
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("user_account")
+    .select("user_id, username, role, person_id, officer_id")
+    .eq("user_id", userId)
     .maybeSingle();
 
-  if (error || !profile) return null;
+  if (error || !data) return null;
 
   return {
-    userId: user.id,
-    email: user.email ?? null,
-    role: profile.role as AppRole,
-    personId: profile.person_id ?? null,
-    officerId: profile.officer_id ?? null,
+    userId: data.user_id,
+    username: data.username,
+    role: data.role as AppRole,
+    personId: data.person_id ?? null,
+    officerId: data.officer_id ?? null,
   };
 }
 

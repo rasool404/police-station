@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate, statusBadgeClass, severityBadgeClass } from "@/lib/format";
 import { requireRole } from "@/lib/auth";
 
 export default async function CasesPage() {
-  await requireRole(["officer", "admin"]);
+  await requireRole(["officer", "chef"]);
   const supabase = await createClient();
   const { data: cases, error } = await supabase
     .from("case")
@@ -15,19 +14,22 @@ export default async function CasesPage() {
     )
     .order("opened_date", { ascending: false });
 
-  if (error) return <div className="error">{error.message}</div>;
+  if (error) return <div className="notice">{error.message}</div>;
 
   return (
     <>
-      <div className="row">
+      <div className="page-head">
         <h1>Cases</h1>
-        <Link href="/cases/new"><button>New case</button></Link>
+        <div className="meta">
+          <Link href="/cases/new" className="btn">New →</Link>
+        </div>
       </div>
-      <div className="card" style={{ padding: 0 }}>
-        <table>
+
+      <div className="dossier" style={{ padding: 0, overflow: "hidden" }}>
+        <table className="ledger">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>File No.</th>
               <th>Crime</th>
               <th>Severity</th>
               <th>Lead officer</th>
@@ -40,27 +42,27 @@ export default async function CasesPage() {
           <tbody>
             {cases?.map((c: any) => (
               <tr key={c.case_id}>
-                <td className="muted">{c.case_id}</td>
+                <td className="id">{c.case_id}</td>
                 <td>{c.crime_type?.name ?? "—"}</td>
                 <td>
                   {c.crime_type?.severity ? (
-                    <span className={severityBadgeClass(c.crime_type.severity)}>
+                    <span className={`stamp severity-${c.crime_type.severity}`}>
                       {c.crime_type.severity}
                     </span>
                   ) : "—"}
                 </td>
                 <td>
                   {c.lead_officer?.name ?? "—"}{" "}
-                  <span className="muted">({c.lead_officer?.badge_number})</span>
+                  <span className="muted mono" style={{ fontSize: 11 }}>{c.lead_officer?.badge_number}</span>
                 </td>
-                <td>{formatDate(c.opened_date)}</td>
-                <td>{formatDate(c.closed_date)}</td>
-                <td><span className={statusBadgeClass(c.status)}>{c.status}</span></td>
-                <td><Link href={`/cases/${c.case_id}`}>View →</Link></td>
+                <td className="mono muted">{new Date(c.opened_date).toLocaleDateString()}</td>
+                <td className="mono muted">{c.closed_date ? new Date(c.closed_date).toLocaleDateString() : "—"}</td>
+                <td><span className={`stamp stamp-${c.status}`}>{c.status}</span></td>
+                <td><Link href={`/cases/${c.case_id}`}>Open file →</Link></td>
               </tr>
             ))}
             {!cases?.length && (
-              <tr><td colSpan={8} className="empty">No cases</td></tr>
+              <tr><td colSpan={8} className="empty">No cases on file.</td></tr>
             )}
           </tbody>
         </table>

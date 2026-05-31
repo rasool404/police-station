@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 
 export default async function StationsPage() {
-  await requireRole(["officer", "admin"]);
+  await requireRole(["officer", "chef"]);
   const supabase = await createClient();
   const { data: stations, error } = await supabase
     .from("police_station")
@@ -13,16 +13,19 @@ export default async function StationsPage() {
     )
     .order("station_id");
 
-  if (error) return <div className="error">{error.message}</div>;
+  if (error) return <div className="notice">{error.message}</div>;
 
   return (
     <>
-      <h1>Police Stations</h1>
-      <div className="card" style={{ padding: 0 }}>
-        <table>
+      <div className="page-head">
+        <h1>Stations</h1>
+      </div>
+
+      <div className="dossier" style={{ padding: 0 }}>
+        <table className="ledger">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Station No.</th>
               <th>Name</th>
               <th>Address</th>
               <th>Phone</th>
@@ -33,16 +36,16 @@ export default async function StationsPage() {
           <tbody>
             {stations?.map((s: any) => (
               <tr key={s.station_id}>
-                <td className="muted">{s.station_id}</td>
+                <td className="id">{s.station_id}</td>
                 <td>{s.name}</td>
-                <td>{s.address ?? "—"}</td>
-                <td>{s.phone ?? "—"}</td>
-                <td>{s.department?.length ?? 0}</td>
-                <td>{s.officer?.length ?? 0}</td>
+                <td className="muted">{s.address ?? "—"}</td>
+                <td className="mono muted">{s.phone ?? "—"}</td>
+                <td className="mono">{s.department?.length ?? 0}</td>
+                <td className="mono">{s.officer?.length ?? 0}</td>
               </tr>
             ))}
             {!stations?.length && (
-              <tr><td colSpan={6} className="empty">No stations</td></tr>
+              <tr><td colSpan={6} className="empty">No stations registered.</td></tr>
             )}
           </tbody>
         </table>
