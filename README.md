@@ -16,6 +16,11 @@ supabase/
   migrations/
     0001_init.sql          ← schema (tables, FKs, indexes, checks)
     0002_seed.sql          ← sample data
+    0003_more_seed.sql     ← additional mock data
+    0004_auth_and_roles.sql← (historical) Supabase-Auth-backed app_user
+    0005_rls.sql           ← (historical) Row Level Security policies
+    0006_report_rpc.sql    ← (historical) SECURITY DEFINER helper
+    0007_local_auth.sql    ← user_account table with 3 demo logins (current)
 app/
   layout.tsx, globals.css  ← shell + dark theme
   page.tsx                 ← dashboard with counts
@@ -68,6 +73,45 @@ pnpm dev
 ```
 Open http://localhost:3000 — the dashboard should show row counts from
 your seeded database.
+
+## Logins
+
+Authentication is intentionally simple for a database course: usernames
+and passwords live in a `user_account` table (see `0007_local_auth.sql`).
+Three demo accounts are seeded automatically:
+
+| Role | Username | Password | Linked to |
+|---|---|---|---|
+| citizen | `citizen` | `citizen123` | person PER-01 (Hassan Reza) |
+| officer | `officer` | `officer123` | officer OFF-01 (Alex Carter) |
+| chef    | `chef`    | `chef123`    | — |
+
+The `user_account_role_link_chk` CHECK constraint enforces that each
+role has the right kind of link (citizens → a `person`, officers → an
+`officer`, chef → neither). The `user_role` enum keeps roles type-safe.
+
+| Role | Can | Cannot |
+|---|---|---|
+| `citizen` | File reports (`/report/new`), see own reports (`/report/mine`) | See the org chart, other people, or cases |
+| `officer` | Read everything, manage complaints/cases/arrests/charges/evidence/persons | Manage ranks, departments, stations, officers, or user accounts |
+| `chef`    | Everything an officer can do, plus manage ranks (and any other reference data) | — |
+
+Role enforcement happens in the application layer via the `requireRole`
+helper in `lib/auth.ts` — every protected page calls it at the top.
+
+### Add another account
+
+In Supabase SQL Editor:
+
+```sql
+-- New citizen tied to an existing person
+insert into user_account (user_id, username, password, role, person_id)
+values ('U-CIT-02', 'amara', 'amara123', 'citizen', 'PER-12');
+
+-- New officer tied to an existing officer record
+insert into user_account (user_id, username, password, role, officer_id)
+values ('U-OFF-02', 'yuki',  'yuki123',  'officer', 'OFF-07');
+```
 
 ## Demonstrating the schema
 

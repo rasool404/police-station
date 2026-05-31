@@ -1,0 +1,56 @@
+import { createClient } from "@/lib/supabase/server";
+import { requireRole } from "@/lib/auth";
+
+export default async function DepartmentsPage() {
+  await requireRole(["officer", "chef"]);
+  const supabase = await createClient();
+  const { data: departments, error } = await supabase
+    .from("department")
+    .select(
+      `department_id, name, description,
+       station:police_station(station_id, name),
+       officer:officer(officer_id)`,
+    )
+    .order("department_id");
+
+  if (error) return <div className="notice">{error.message}</div>;
+
+  return (
+    <>
+      <div className="page-head">
+        <h1>Departments</h1>
+      </div>
+
+      <div className="dossier" style={{ padding: 0 }}>
+        <table className="ledger">
+          <thead>
+            <tr>
+              <th>Dept No.</th>
+              <th>Name</th>
+              <th>Station</th>
+              <th>Description</th>
+              <th>Officers</th>
+            </tr>
+          </thead>
+          <tbody>
+            {departments?.map((d: any) => (
+              <tr key={d.department_id}>
+                <td className="id">{d.department_id}</td>
+                <td>{d.name}</td>
+                <td>
+                  {d.station?.name ?? "—"}{" "}
+                  <span className="muted mono" style={{ fontSize: 11 }}>{d.station?.station_id}</span>
+                </td>
+                <td className="muted">{d.description ?? "—"}</td>
+                <td className="mono">{d.officer?.length ?? 0}</td>
+              </tr>
+            ))}
+            {!departments?.length && (
+              <tr><td colSpan={5} className="empty">No departments registered.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
