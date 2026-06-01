@@ -1,12 +1,21 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, type CurrentUser } from "@/lib/auth";
+import { visibleComplaintOfficerIds, visibleCaseIds } from "@/lib/scope";
 
 async function count(table: string) {
   const supabase = await createClient();
   const { count } = await supabase
     .from(table)
     .select("*", { count: "exact", head: true });
+  return count ?? 0;
+}
+
+async function countScoped(table: string, column: string, scope: string[] | null) {
+  const supabase = await createClient();
+  let q = supabase.from(table).select("*", { count: "exact", head: true });
+  if (scope !== null) q = q.in(column, scope);
+  const { count } = await q;
   return count ?? 0;
 }
 
@@ -30,7 +39,7 @@ export default async function HomePage() {
     return <CitizenLobby username={user.username} />;
   }
 
-  return <CommandDashboard isChef={user.role === "chef"} />;
+  return <CommandDashboard user={user} />;
 }
 
 /* =========================================================
@@ -69,32 +78,20 @@ function CitizenLobby({ username }: { username: string }) {
 /* =========================================================
    COMMAND DASHBOARD (officer / admin)
    ========================================================= */
-async function CommandDashboard({ isChef }: { isChef: boolean }) {
-  const [
-    stations,
-    departments,
-    officers,
-    persons,
-    complaints,
-    cases,
-    arrests,
-    charges,
-    evidence,
-  ] = await Promise.all([
-    count("police_station"),
-    count("department"),
-    count("officer"),
+async function CommandDashboard({ user }: { user: CurrentUser }) {
+  const isChef = user.role === "chef";
+  const caseScope = await visibleCaseIds(user);
+
+  const [persons, cases, arrests, complaints] = await Promise.all([
     count("person"),
-    count("complaint"),
-    count("case"),
-    count("arrest"),
-    count("charge"),
-    count("evidence"),
+    countScoped("case",   "case_id", caseScope),
+    countScoped("arrest", "case_id", caseScope),
+    isChef ? count("complaint") : Promise.resolve(0),
   ]);
 
   const supabase = await createClient();
 
-  const { data: openCases } = await supabase
+  let openCasesQuery = supabase
     .from("case")
     .select(
       `case_id, opened_date, status,
@@ -104,15 +101,19 @@ async function CommandDashboard({ isChef }: { isChef: boolean }) {
     .neq("status", "closed")
     .order("opened_date", { ascending: false })
     .limit(6);
+  if (caseScope !== null) openCasesQuery = openCasesQuery.in("case_id", caseScope);
+  const { data: openCases } = await openCasesQuery;
 
-  const { data: recentComplaints } = await supabase
-    .from("complaint")
-    .select(
-      `complaint_id, filed_at, status, title, description,
-       complainant:person!complaint_complainant_id_fkey(name)`,
-    )
-    .order("filed_at", { ascending: false })
-    .limit(5);
+  const { data: recentComplaints } = isChef
+    ? await supabase
+        .from("complaint")
+        .select(
+          `complaint_id, filed_at, status, title, description,
+           complainant:person!complaint_complainant_id_fkey(name)`,
+        )
+        .order("filed_at", { ascending: false })
+        .limit(5)
+    : { data: null };
 
   return (
     <>
@@ -123,13 +124,13 @@ async function CommandDashboard({ isChef }: { isChef: boolean }) {
       </div>
 
       <div className="grid-stats">
-        <MetricCard label="Complaints" value={complaints} href="/complaints" />
-        <MetricCard label="Cases"      value={cases}      href="/cases" />
-        <MetricCard label="Arrests"    value={arrests}    href="/cases" />
-        <MetricCard label="Persons"    value={persons}    href="/persons" />
+        {isChef && <MetricCard label="Complaints" value={complaints} href="/complaints" />}
+        <MetricCard label={isChef ? "Cases"    : "My cases"}    value={cases}   href="/cases" />
+        <MetricCard label={isChef ? "Arrests"  : "My arrests"}  value={arrests} href="/cases" />
+        {isChef && <MetricCard label="People"   value={persons} href="/persons" />}
       </div>
 
-      <div className="grid-asym" style={{ marginTop: 32 }}>
+      <div className={isChef ? "grid-asym" : ""} style={{ marginTop: 32 }}>
         <div className="dossier" style={{ padding: 24 }}>
           <div className="row-between" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Active caseload</h3>
@@ -161,40 +162,44 @@ async function CommandDashboard({ isChef }: { isChef: boolean }) {
           )}
         </div>
 
-        <div className="dossier" style={{ padding: 24 }}>
-          <div className="row-between" style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>Recent complaints</h3>
-            <Link href="/complaints">All →</Link>
-          </div>
-          {recentComplaints?.length ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {recentComplaints.map((c: any) => (
-                <div key={c.complaint_id} style={{ paddingBottom: 14, borderBottom: "1px solid var(--rule)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-                    <span className="mono" style={{ fontSize: 12 }}>{c.complaint_id}</span>
-                    <span className={`stamp stamp-${c.status}`}>{c.status}</span>
-                  </div>
-                  <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500 }}>
-                    {c.title}
-                  </div>
-                  <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
-                    {c.description?.slice(0, 80)}{c.description?.length > 80 ? "…" : ""}
-                  </div>
-                </div>
-              ))}
+        {isChef && (
+          <div className="dossier" style={{ padding: 24 }}>
+            <div className="row-between" style={{ marginBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>Recent complaints</h3>
+              <Link href="/complaints">All →</Link>
             </div>
-          ) : <div className="muted">No complaints yet.</div>}
-        </div>
+            {recentComplaints?.length ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {recentComplaints.map((c: any) => (
+                  <div key={c.complaint_id} style={{ paddingBottom: 14, borderBottom: "1px solid var(--rule)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                      <span className="mono" style={{ fontSize: 12 }}>{c.complaint_id}</span>
+                      <span className={`stamp stamp-${c.status}`}>{c.status}</span>
+                    </div>
+                    <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500 }}>
+                      {c.title}
+                    </div>
+                    <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                      {c.description?.slice(0, 80)}{c.description?.length > 80 ? "…" : ""}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : <div className="muted">No complaints yet.</div>}
+          </div>
+        )}
       </div>
 
-      <div className="grid-stats" style={{ marginTop: 32 }}>
-        <ReferenceCard label="Stations"     value={stations}     href="/stations" />
-        <ReferenceCard label="Departments"  value={departments}  href="/departments" />
-        <ReferenceCard label="Officers"     value={officers}     href="/officers" />
-        <ReferenceCard label="Evidence"     value={evidence}     href="/cases" />
-        <ReferenceCard label="Charges"      value={charges}      href="/cases" />
-        {isChef && <ReferenceCard label="Ranks" value="↗" href="/chef/ranks" />}
-      </div>
+      {isChef && (
+        <div className="grid-stats" style={{ marginTop: 32 }}>
+          <ReferenceCard label="Stations"     value={await count("police_station")} href="/stations" />
+          <ReferenceCard label="Departments"  value={await count("department")}     href="/departments" />
+          <ReferenceCard label="Officers"     value={await count("officer")}        href="/officers" />
+          <ReferenceCard label="Evidence"     value={await count("evidence")}       href="/cases" />
+          <ReferenceCard label="Charges"      value={await count("charge")}         href="/cases" />
+          <ReferenceCard label="Ranks"        value="↗"                              href="/chef/ranks" />
+        </div>
+      )}
     </>
   );
 }

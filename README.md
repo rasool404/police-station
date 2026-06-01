@@ -77,18 +77,70 @@ your seeded database.
 ## Logins
 
 Authentication is intentionally simple for a database course: usernames
-and passwords live in a `user_account` table (see `0007_local_auth.sql`).
-Three demo accounts are seeded automatically:
-
-| Role | Username | Password | Linked to |
-|---|---|---|---|
-| citizen | `citizen` | `citizen123` | person PER-01 (Hassan Reza) |
-| officer | `officer` | `officer123` | officer OFF-01 (Alex Carter) |
-| chef    | `chef`    | `chef123`    | — |
+and passwords live in a `user_account` table (see `0007_local_auth.sql`,
+`0012_named_accounts.sql`). Each officer and each complainant in the
+seed data has their own account so the system feels populated from the
+moment you sign in.
 
 The `user_account_role_link_chk` CHECK constraint enforces that each
 role has the right kind of link (citizens → a `person`, officers → an
 `officer`, chef → neither). The `user_role` enum keeps roles type-safe.
+
+Quick demo accounts (shown on the login page):
+
+| Role | Username | Password | Linked to |
+|---|---|---|---|
+| citizen | `hassan.reza` | `hassan123` | PER-01 Hassan Reza |
+| officer | `alex.carter` | `alex123`   | OFF-01 Alex Carter |
+| chef    | `chief`       | `chief123`  | — |
+
+### Full credentials list
+
+Every other login follows the same pattern: `firstname.lastname` /
+`firstname123` (apostrophes and hyphens stripped).
+
+**Citizens (15):**
+
+| Username | Password | Person |
+|---|---|---|
+| `hassan.reza`   | `hassan123`  | PER-01 |
+| `nadia.khoury`  | `nadia123`   | PER-02 |
+| `lin.zhao`      | `lin123`     | PER-04 |
+| `ibrahim.conde` | `ibrahim123` | PER-05 |
+| `sara.okafor`   | `sara123`    | PER-06 |
+| `felix.mueller` | `felix123`   | PER-07 |
+| `aisha.khan`    | `aishak123`  | PER-08 |
+| `diego.costa`   | `diegoc123`  | PER-09 |
+| `yuki.sato`     | `yukis123`   | PER-10 |
+| `oleg.petrov`   | `oleg123`    | PER-11 |
+| `amara.diallo`  | `amara123`   | PER-12 |
+| `karim.hassan`  | `karim123`   | PER-13 |
+| `mei.lin`       | `mei123`     | PER-14 |
+| `rafael.santos` | `rafael123`  | PER-15 |
+| `zara.ahmed`    | `zara123`    | PER-16 |
+
+**Officers (16):**
+
+| Username | Password | Officer |
+|---|---|---|
+| `alex.carter`    | `alex123`   | OFF-01 (B-1001) |
+| `maya.singh`     | `maya123`   | OFF-02 (B-1002) |
+| `jordan.lee`     | `jordan123` | OFF-03 (B-1003) |
+| `priya.patel`    | `priya123`  | OFF-04 (B-2001) |
+| `sam.rivera`     | `sam123`    | OFF-05 (B-2002) |
+| `chen.wei`       | `chen123`   | OFF-06 (B-3001) |
+| `yuki.tanaka`    | `yuki123`   | OFF-07 (B-1004) |
+| `eli.mendez`     | `eli123`    | OFF-08 (B-1005) |
+| `aisha.yusuf`    | `aisha123`  | OFF-09 (B-2003) |
+| `diego.romero`   | `diego123`  | OFF-10 (B-2004) |
+| `olivia.park`    | `olivia123` | OFF-11 (B-3002) |
+| `tomas.berg`     | `tomas123`  | OFF-12 (B-3003) |
+| `liam.obrien`    | `liam123`   | OFF-13 (B-4001) |
+| `sofia.romano`   | `sofia123`  | OFF-14 (B-4002) |
+| `rashid.alsayed` | `rashid123` | OFF-15 (B-5001) |
+| `anna.volkova`   | `anna123`   | OFF-16 (B-5002) |
+
+**Chef:** `chief` / `chief123`.
 
 | Role | Can | Cannot |
 |---|---|---|

@@ -7,16 +7,16 @@ type Props = {
   style?: CSSProperties;
 };
 
-// Stable color palette for avatars — earth tones that fit the case-file paper.
+// Stable color palette for avatars — cool blues / steels / accent jewels.
 const PALETTE = [
-  { bg: "#7a1a1a", fg: "#f3ecdc" }, // oxblood
-  { bg: "#3a5a2a", fg: "#f3ecdc" }, // forest
-  { bg: "#9b7a2c", fg: "#11192a" }, // brass
-  { bg: "#11192a", fg: "#f3ecdc" }, // ink
-  { bg: "#4a5b7c", fg: "#f3ecdc" }, // slate blue
-  { bg: "#6a4a2a", fg: "#f3ecdc" }, // saddle
-  { bg: "#5a3a5a", fg: "#f3ecdc" }, // plum
-  { bg: "#2a5a4b", fg: "#f3ecdc" }, // teal
+  { bg: "#14457a", fg: "#eef2f8" }, // deep navy
+  { bg: "#0c1c36", fg: "#eef2f8" }, // ink
+  { bg: "#4a5b7c", fg: "#eef2f8" }, // slate blue
+  { bg: "#2a6b5e", fg: "#eef2f8" }, // teal
+  { bg: "#5b6a87", fg: "#eef2f8" }, // steel
+  { bg: "#1f3a5f", fg: "#eef2f8" }, // midnight blue
+  { bg: "#3b5d8a", fg: "#eef2f8" }, // royal blue
+  { bg: "#b07f1e", fg: "#0c1c36" }, // amber (one warm pop)
 ];
 
 function pickColor(key: string) {

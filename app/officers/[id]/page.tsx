@@ -2,13 +2,14 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
+import { ReassignForm } from "./ReassignForm";
 
 export default async function OfficerDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole(["officer", "chef"]);
+  const user = await requireRole(["officer", "chef"]);
   const { id } = await params;
   const supabase = await createClient();
 
@@ -16,6 +17,7 @@ export default async function OfficerDetailPage({
     .from("officer")
     .select(
       `officer_id, badge_number, name, phone, join_date,
+       station_id, department_id, rank_id,
        station:police_station(station_id, name),
        department:department(department_id, name),
        rank:rank(title, level)`,
@@ -27,6 +29,16 @@ export default async function OfficerDetailPage({
   if (!officer) notFound();
 
   const o = officer as any;
+
+  // Chef-only edit panel data.
+  const isChef = user.role === "chef";
+  const [{ data: stations }, { data: departments }, { data: ranks }] = isChef
+    ? await Promise.all([
+        supabase.from("police_station").select("station_id, name").order("name"),
+        supabase.from("department").select("department_id, name, station_id").order("name"),
+        supabase.from("rank").select("rank_id, title, level").order("level"),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }];
 
   // Cases where they are the lead.
   const { data: leadCases } = await supabase
@@ -94,6 +106,23 @@ export default async function OfficerDetailPage({
         <Stat label="Arrests made"     value={arrests?.length ?? 0} />
         <Stat label="Evidence logged"  value={evidence?.length ?? 0} />
       </div>
+
+      {isChef && (
+        <>
+          <div className="section-rule"><span className="label">Reassign (chief only)</span></div>
+          <div className="dossier" style={{ padding: 20 }}>
+            <ReassignForm
+              officerId={o.officer_id}
+              currentRankId={o.rank_id}
+              currentStationId={o.station_id}
+              currentDepartmentId={o.department_id}
+              ranks={ranks ?? []}
+              stations={stations ?? []}
+              departments={departments ?? []}
+            />
+          </div>
+        </>
+      )}
 
       <div className="section-rule"><span className="label">Cases as lead</span></div>
       <CaseTable

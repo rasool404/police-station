@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
+import { visibleCaseIds } from "@/lib/scope";
 
 export default async function CasesPage() {
-  await requireRole(["officer", "chef"]);
+  const user = await requireRole(["officer", "chef"]);
   const supabase = await createClient();
-  const { data: cases, error } = await supabase
+  const scope = await visibleCaseIds(user);
+
+  let q = supabase
     .from("case")
     .select(
       `case_id, opened_date, closed_date, status,
@@ -13,6 +16,8 @@ export default async function CasesPage() {
        lead_officer:officer!case_lead_officer_id_fkey(name, badge_number)`,
     )
     .order("opened_date", { ascending: false });
+  if (scope !== null) q = q.in("case_id", scope);
+  const { data: cases, error } = await q;
 
   if (error) return <div className="notice">{error.message}</div>;
 

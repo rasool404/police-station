@@ -3,6 +3,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { assignOfficer, unassignOfficer } from "@/app/actions/assignment";
+import { updateCaseStatus } from "@/app/actions/status";
+import { visibleCaseIds } from "@/lib/scope";
 import { Avatar } from "@/components/Avatar";
 
 export default async function CaseDetailPage({
@@ -10,9 +12,12 @@ export default async function CaseDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole(["officer", "chef"]);
+  const user = await requireRole(["officer", "chef"]);
   const { id } = await params;
   const supabase = await createClient();
+
+  const scope = await visibleCaseIds(user);
+  if (scope !== null && !scope.includes(id)) notFound();
 
   const { data: c, error } = await supabase
     .from("case")
@@ -79,7 +84,7 @@ export default async function CaseDetailPage({
           {k.crime_type?.name ?? "Unclassified"}
         </h1>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 14 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 14, alignItems: "center" }}>
           <span className={`stamp stamp-${k.status}`}>{k.status}</span>
           {k.crime_type?.severity && (
             <span className={`stamp severity-${k.crime_type.severity}`}>{k.crime_type.severity}</span>
@@ -88,6 +93,18 @@ export default async function CaseDetailPage({
             opened {new Date(k.opened_date).toLocaleDateString()}
             {k.closed_date && ` · closed ${new Date(k.closed_date).toLocaleDateString()}`}
           </span>
+          <form action={updateCaseStatus} style={{ display: "inline-flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+            <input type="hidden" name="case_id" value={k.case_id} />
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 8, flexDirection: "row", textTransform: "none", letterSpacing: 0, fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-muted)" }}>
+              Change status
+              <select name="status" defaultValue={k.status} style={{ padding: "4px 8px" }}>
+                <option value="open">open</option>
+                <option value="investigating">investigating</option>
+                <option value="closed">closed</option>
+              </select>
+            </label>
+            <button type="submit" className="secondary" style={{ padding: "4px 10px", fontSize: 10 }}>Save</button>
+          </form>
         </div>
       </div>
 
@@ -97,7 +114,7 @@ export default async function CaseDetailPage({
       <div className="grid-stats" style={{ marginBottom: 8 }}>
         <MetaCard label="Lead officer" value={k.lead_officer?.name ?? "—"} sub={k.lead_officer?.badge_number} />
         <MetaCard label="Officers assigned" value={String(k.assignments?.length ?? 0)} />
-        <MetaCard label="Persons involved" value={String(k.involvements?.length ?? 0)} />
+        <MetaCard label="People involved" value={String(k.involvements?.length ?? 0)} />
         <MetaCard label="Arrests · Charges" value={`${totalArrests} · ${totalCharges}`} />
         <MetaCard label="Evidence items" value={String(totalEvidence)} />
       </div>
@@ -198,7 +215,7 @@ export default async function CaseDetailPage({
 
       {/* INVOLVEMENTS */}
       <div className="section-rule">
-        <span className="label">Persons</span>
+        <span className="label">People</span>
       </div>
       <div className="dossier" style={{ padding: 0 }}>
         <table className="ledger">

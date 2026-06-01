@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 
 export default async function StationsPage() {
-  await requireRole(["officer", "chef"]);
+  await requireRole("chef");
   const supabase = await createClient();
   const { data: stations, error } = await supabase
     .from("police_station")

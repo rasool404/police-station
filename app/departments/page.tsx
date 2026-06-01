@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
+import { visibleDepartmentIds } from "@/lib/scope";
 
 export default async function DepartmentsPage() {
-  await requireRole(["officer", "chef"]);
+  const user = await requireRole(["officer", "chef"]);
   const supabase = await createClient();
-  const { data: departments, error } = await supabase
+  const scope = await visibleDepartmentIds(user);
+
+  let q = supabase
     .from("department")
     .select(
       `department_id, name, description,
@@ -13,6 +16,8 @@ export default async function DepartmentsPage() {
        officer:officer(officer_id)`,
     )
     .order("department_id");
+  if (scope !== null) q = q.in("department_id", scope);
+  const { data: departments, error } = await q;
 
   if (error) return <div className="notice">{error.message}</div>;
 

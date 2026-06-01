@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { Avatar } from "@/components/Avatar";
 
 export default async function PersonsPage() {
-  await requireRole(["officer", "chef"]);
+  await requireRole("chef");
   const supabase = await createClient();
   const { data: persons, error } = await supabase
     .from("person")
@@ -16,7 +16,7 @@ export default async function PersonsPage() {
   return (
     <>
       <div className="page-head">
-        <h1>Persons</h1>
+        <h1>People</h1>
       </div>
 
       <div className="card-grid">

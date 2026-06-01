@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
+import { visibleComplaintOfficerIds } from "@/lib/scope";
 
 export default async function ComplaintsPage() {
-  await requireRole(["officer", "chef"]);
+  await requireRole("chef");
   const supabase = await createClient();
-  const { data: complaints, error } = await supabase
+  const scope = null;
+
+  let query = supabase
     .from("complaint")
     .select(
       `complaint_id, filed_at, title, description, status, evidence_url,
@@ -13,6 +16,8 @@ export default async function ComplaintsPage() {
        officer:officer!complaint_officer_id_fkey(officer_id, name, badge_number)`,
     )
     .order("filed_at", { ascending: false });
+  if (scope !== null) query = query.in("officer_id", scope);
+  const { data: complaints, error } = await query;
 
   if (error) return <div className="notice">{error.message}</div>;
 
@@ -50,8 +55,8 @@ export default async function ComplaintsPage() {
                     <div className="thumb" style={{ display: "grid", placeItems: "center", fontSize: 18, color: "var(--ink-faint)" }}>—</div>
                   )}
                 </td>
-                <td className="id">{c.complaint_id}</td>
-                <td>{c.title}</td>
+                <td className="id"><Link href={`/complaints/${c.complaint_id}`}>{c.complaint_id}</Link></td>
+                <td><Link href={`/complaints/${c.complaint_id}`} style={{ color: "inherit" }}>{c.title}</Link></td>
                 <td className="mono muted">{new Date(c.filed_at).toLocaleString()}</td>
                 <td>{c.complainant?.name ?? "—"}</td>
                 <td>
