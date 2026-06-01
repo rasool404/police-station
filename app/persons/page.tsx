@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
+import { Avatar } from "@/components/Avatar";
 
 export default async function PersonsPage() {
   await requireRole(["officer", "chef"]);
@@ -17,36 +19,25 @@ export default async function PersonsPage() {
         <h1>Persons</h1>
       </div>
 
-      <div className="dossier" style={{ padding: 0 }}>
-        <table className="ledger">
-          <thead>
-            <tr>
-              <th>Index No.</th>
-              <th>Name</th>
-              <th>National ID</th>
-              <th>Sex</th>
-              <th>D.O.B.</th>
-              <th>Phone</th>
-              <th>Address</th>
-            </tr>
-          </thead>
-          <tbody>
-            {persons?.map((p) => (
-              <tr key={p.person_id}>
-                <td className="id">{p.person_id}</td>
-                <td>{p.name}</td>
-                <td className="mono muted">{p.national_id ?? "—"}</td>
-                <td className="mono">{p.gender ?? "—"}</td>
-                <td className="mono muted">{p.dob ? new Date(p.dob).toLocaleDateString() : "—"}</td>
-                <td className="mono muted">{p.phone ?? "—"}</td>
-                <td className="muted">{p.address ?? "—"}</td>
-              </tr>
-            ))}
-            {!persons?.length && (
-              <tr><td colSpan={7} className="empty">Index empty.</td></tr>
-            )}
-          </tbody>
-        </table>
+      <div className="card-grid">
+        {persons?.map((p) => (
+          <Link key={p.person_id} href={`/persons/${p.person_id}`} className="person-card">
+            <Avatar name={p.name} id={p.person_id} size={48} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+                <strong style={{ fontFamily: "var(--font-display)", fontSize: 17 }}>{p.name}</strong>
+                <span className="mono muted" style={{ fontSize: 11 }}>{p.person_id}</span>
+              </div>
+              <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
+                {p.gender ?? "—"} · {p.dob ? new Date(p.dob).toLocaleDateString() : "—"}
+              </div>
+              <div className="mono faint" style={{ fontSize: 10.5, letterSpacing: "0.18em", textTransform: "uppercase", marginTop: 8 }}>
+                {p.national_id ?? "—"}
+              </div>
+            </div>
+          </Link>
+        ))}
+        {!persons?.length && <div className="dossier empty">No persons on file.</div>}
       </div>
     </>
   );

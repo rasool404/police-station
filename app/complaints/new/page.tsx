@@ -46,6 +46,17 @@ export default async function NewComplaintPage() {
           </label>
 
           <label>
+            Title
+            <input
+              name="title"
+              required
+              minLength={3}
+              maxLength={120}
+              placeholder="Short summary"
+            />
+          </label>
+
+          <label>
             Description
             <textarea name="description" placeholder="What happened? Where? When? Anything else witnesses said?" />
           </label>

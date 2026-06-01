@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 
@@ -36,8 +37,8 @@ export default async function StationsPage() {
           <tbody>
             {stations?.map((s: any) => (
               <tr key={s.station_id}>
-                <td className="id">{s.station_id}</td>
-                <td>{s.name}</td>
+                <td className="id"><Link href={`/stations/${s.station_id}`}>{s.station_id}</Link></td>
+                <td><Link href={`/stations/${s.station_id}`} style={{ color: "inherit" }}>{s.name}</Link></td>
                 <td className="muted">{s.address ?? "—"}</td>
                 <td className="mono muted">{s.phone ?? "—"}</td>
                 <td className="mono">{s.department?.length ?? 0}</td>

@@ -11,17 +11,18 @@ function newId(prefix: string) {
 export async function createComplaint(formData: FormData) {
   const complainantId = String(formData.get("complainant_id"));
   const officerId     = String(formData.get("officer_id"));
-  const description   = String(formData.get("description") ?? "");
+  const title         = String(formData.get("title")       ?? "").trim();
+  const description   = String(formData.get("description") ?? "").trim();
 
-  if (!complainantId || !officerId) {
-    throw new Error("complainant and officer are required");
-  }
+  if (!complainantId || !officerId) throw new Error("Complainant and officer are required.");
+  if (title.length < 3)             throw new Error("Title must be at least 3 characters.");
 
   const supabase = await createClient();
   const { error } = await supabase.from("complaint").insert({
     complaint_id:   newId("CMP"),
     complainant_id: complainantId,
     officer_id:     officerId,
+    title,
     description,
     status:         "open",
   });
